@@ -3,7 +3,7 @@ require.config({
     //Increase the timeout time so if the server is insanely slow the client won't burst
     waitSeconds: 200,
     paths: {
-        'jquery': 'vendor/jquery',
+        'jquery': 'vendor/jquery-1.11.1',
         // 'jquery-ui': 'vendor/jquery-ui',
         // 'jquery-drag' : 'vendor/jquery.event.drag',
         // 'jquery-drop' : 'vendor/jquery.event.drop',
