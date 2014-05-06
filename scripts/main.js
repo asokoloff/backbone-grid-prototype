@@ -97,7 +97,7 @@ require(['jquery', 'backbone', 'underscore', 'marionette'], function ($, Backbon
         }
     });
 
-    GridDemo.ItemCollection = Backbone.Collection.extend({
+    GridDemo.Items = Backbone.Collection.extend({
         model: GridDemo.ItemModel,
 
         comparator: 'sortkey',
@@ -189,9 +189,9 @@ require(['jquery', 'backbone', 'underscore', 'marionette'], function ($, Backbon
 
     });
 
-    GridDemo.GridView = Marionette.CollectionView.extend({
-        tagName: 'table',
-	className: 'table table-striped table-bordered table-condense',
+    GridDemo.GridView = Marionette.CompositeView.extend({
+        template: '#gridview_template',
+        itemViewContainer: "tbody",
         itemView: GridDemo.RowView,
         itemViewOptions: function () {
             return { gridView: this }
@@ -199,7 +199,7 @@ require(['jquery', 'backbone', 'underscore', 'marionette'], function ($, Backbon
     });
 
     GridDemo.on("initialize:after", function(){
-        var onlyCollection = new GridDemo.ItemCollection();
+        var onlyCollection = new GridDemo.Items();
         onlyCollection.getNodes();
         GridDemo.mainView = new GridDemo.GridView({
             collection: onlyCollection
