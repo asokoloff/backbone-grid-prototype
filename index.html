@@ -17,7 +17,7 @@
   <body>
     <div class="container">
       <h1>Backbone grid demo</h1>
-
+      <hr></hr>
       <div id="main-region">
       </div>
 
@@ -35,20 +35,24 @@
 
 
     <script type="text/template" id="row-template">
-      <td class="<%- folder_style %>" style="padding-left: <%- indent %>px; width: 60px">
-	<%- folder_control %>
+      <td class="<%- folder_style %>" style="padding-left: <%- indent %>px; width: 350px;">
+	<% if (folder_control == '') { %>
+	&nbsp;
+    <% } %><b><%- folder_control %></b>&nbsp;&nbsp;<%- model.id %>
       </td>
-      <td><%- model.id %></td>
       <td><%- model.title %></td>
+      <td><%- model.tel %></td>
+      <td><%- model.city %></td>
     </script>
 
     <script type="text/template" id="gridview_template">
       <table class="table table-striped table-bordered table-condense">
         <thead>
           <tr>
-            <th style="width: 60px;">[open]</th>
-            <th>UUID</th>
-            <th>Name</th>
+            <th style="width: 350px;" id="id">ID</th>
+            <th id="title">Assignee</th>
+            <th id="tel">Tel</th>
+            <th id="city">City</th>
           </tr>
         </thead>
         <tbody></tbody>

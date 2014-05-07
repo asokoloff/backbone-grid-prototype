@@ -1,19 +1,12 @@
 require.config({
     baseUrl: "scripts",
-    //Increase the timeout time so if the server is insanely slow the client won't burst
     waitSeconds: 200,
     paths: {
         'jquery': 'vendor/jquery-1.11.1',
-        // 'jquery-ui': 'vendor/jquery-ui',
-        // 'jquery-drag' : 'vendor/jquery.event.drag',
-        // 'jquery-drop' : 'vendor/jquery.event.drop',
         'underscore': 'vendor/underscore',
         'backbone': 'vendor/backbone',
-        'marionette': 'vendor/backbone.marionette'
-        // 'common': 'common',
-        // 'slickcore': 'vendor/slick.core',
-        // 'slickgrid' : 'vendor/slick.grid',
-        // 'slickdataview' : 'vendor/slick.dataview'
+        'marionette': 'vendor/backbone.marionette',
+	'chance': 'vendor/chance.min'
     },
     shim: {
         'underscore': {
@@ -27,19 +20,10 @@ require.config({
             deps: ['jquery', 'underscore', 'backbone'],
             exports: 'Marionette'
         }
-        // 'slickcore': {
-        //     deps: ['jquery-ui']
-        // },
-        // 'slickgrid': {
-        //     deps: ['slickcore', 'jquery-drag', 'jquery-drop']
-        // },
-        // 'slickdataview': {
-        //     deps: ['slickgrid']
-        // }
     }
 });
 
-require(['jquery', 'backbone', 'underscore', 'marionette'], function ($, Backbone, _, Marionette) {
+require(['jquery', 'backbone', 'underscore', 'marionette', 'chance'], function ($, Backbone, _, Marionette) {
 
     'use strict';
 
@@ -51,17 +35,18 @@ require(['jquery', 'backbone', 'underscore', 'marionette'], function ($, Backbon
 
     GridDemo.ItemModel = Backbone.Model.extend({
 
-        initialize: function () {
-            this.childrenLoaded = false;
-            this.parent = this.get('parent');
+	sortkeyDelimiter: '    ',
+
+	sortkey: function (sortfield) {
             if (this.parent) {
-                this.set('level', this.parent.get('level') + 1);
-                this.set('sortkey', this.parent.get('sortkey') + ' ' + this.get('id'));
+                return this.parent.sortkey(sortfield) + this.sortkeyDelimiter + this.get(sortfield);
             } else {
-                this.set('level', 0);
-                this.set('sortkey', this.get('id'));
+                return this.get(sortfield);
             }
-            // move to itemview
+	},
+
+        initialize: function () {
+	    // move to itemview
             this.folder_control = '';
             this.folder_style = '';
             if (this.get('hasChildren')) {
@@ -85,6 +70,7 @@ require(['jquery', 'backbone', 'underscore', 'marionette'], function ($, Backbon
 
         // move to itemview
         isVisible: function () {
+	    // return true;
             var node = this.parent;
             while (node) {
                 if (node.isOpen === false) {
@@ -100,7 +86,40 @@ require(['jquery', 'backbone', 'underscore', 'marionette'], function ($, Backbon
     GridDemo.Items = Backbone.Collection.extend({
         model: GridDemo.ItemModel,
 
-        comparator: 'sortkey',
+	sortkeyDelimiter: '    ',
+
+	sortField: 'id',
+
+	comparator: function (model) {
+	    return model.sortkey(this.sortField);
+	},
+
+        addItem: function (model, parent) {
+
+            model.parent = parent || null;
+            model.childrenLoaded = false;
+            model.isOpen = false;
+
+            if (model.parent) {
+                model.level = model.parent.level + 1;
+                // model.sortkey = model.parent.sortkey + this.sortkeyDelimiter + model.get('id');
+            } else {
+                model.level = 0;
+                // model.sortkey = model.get('id');
+            }
+            this.add(model);
+        },
+
+        _get_descendents: function (aModel) {
+            var result = [],
+            search_string = aModel.sortkey + this.sortkeyDelimiter;
+            _.each(this.models, function (collectionModel) {
+                if (collectionModel.sortkey.indexOf(search_string) === 0) {
+                    result.push(collectionModel);
+                }
+            });
+            return result;
+        },
 
         _uuidGenerator: function () {
             return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
@@ -112,18 +131,20 @@ require(['jquery', 'backbone', 'underscore', 'marionette'], function ($, Backbon
         getNodes: function (parent) {
 
             var hasChildren, i, newI;
-            for (i = 0; i < 50; i++) {
+            for (i = 0; i < 20; i++) {
                 hasChildren = false;
                 if (Math.random() > 0.5) {
                     hasChildren = true;
                 }
                 newI = new GridDemo.ItemModel({
-                    'id': this._uuidGenerator(),
-                    'title': 'Item ' + i,
-                    'hasChildren': hasChildren,
-                    'parent': parent
+                    // 'id': this._uuidGenerator(),
+		    'id': chance.hash({length: 10}),
+                    'title': chance.name(),
+		    'tel': chance.phone(),
+		    'city': chance.city(),
+                    'hasChildren': hasChildren
                 });
-                this.add(newI);
+		this.addItem(newI, parent);
             }
             if (parent) {
                 parent.childrenLoaded = true;
@@ -154,11 +175,6 @@ require(['jquery', 'backbone', 'underscore', 'marionette'], function ($, Backbon
             model.openFolder();
             this.render();
             if (!model.childrenLoaded) {
-                // setTimeout(function() {
-                //     collection.getNodes(model);
-                //     that.gridView.render();
-                // }, 500);
-
                 collection.getNodes(model);
                 this.gridView.render();
 
@@ -169,6 +185,7 @@ require(['jquery', 'backbone', 'underscore', 'marionette'], function ($, Backbon
 
         closeFolder: function () {
             this.model.closeFolder();
+	    this.render();
             this.gridView.render();
         },
 
@@ -177,7 +194,7 @@ require(['jquery', 'backbone', 'underscore', 'marionette'], function ($, Backbon
                 model: this.model.toJSON(),
                 folder_style: this.model.folder_style,
                 folder_control: this.model.folder_control,
-                indent: this.model.get('level') * 8
+                indent: 10 + this.model.level * 24
             };
         },
 
@@ -194,8 +211,31 @@ require(['jquery', 'backbone', 'underscore', 'marionette'], function ($, Backbon
         itemViewContainer: "tbody",
         itemView: GridDemo.RowView,
         itemViewOptions: function () {
-            return { gridView: this }
-        }
+            return { gridView: this };
+        },
+	events: {
+	    'click #id': 'idSort',
+	    'click #title': 'titleSort',
+	    'click #tel': 'telSort',
+	    'click #city': 'citySort'
+	},
+	idSort: function (e) {
+	    this.sortBy('id');
+	},
+	titleSort: function (e) {
+	    this.sortBy('title');
+	},
+	telSort: function (e) {
+	    this.sortBy('tel');
+	},
+	citySort: function (e) {
+	    this.sortBy('city');
+	},
+	sortBy: function (field) {
+	    this.collection.sortField = field;
+	    this.collection.sort();
+	    this.render();
+	}
     });
 
     GridDemo.on("initialize:after", function(){
@@ -210,44 +250,3 @@ require(['jquery', 'backbone', 'underscore', 'marionette'], function ($, Backbon
     GridDemo.start();
 });
 
-
-/*
-
-To get the index for a model:
-
-
-*/
-
-/* ------------------------------------- 
-
-    
-    // var grid;
-    // var columns = [
-    //     {id: "title", name: "Title", field: "title"},
-    //     {id: "duration", name: "Duration", field: "duration"},
-    //     {id: "%", name: "% Complete", field: "percentComplete"},
-    //     {id: "start", name: "Start", field: "start"},
-    //     {id: "finish", name: "Finish", field: "finish"},
-    //     {id: "effort-driven", name: "Effort Driven", field: "effortDriven"}
-    // ];
-
-    // var options = {
-    //     enableCellNavigation: true,
-    //     enableColumnReorder: false
-    // };
-
-    // var data = [];
-    // for (var i = 0; i < 500; i++) {
-    //   data[i] = {
-    //     title: "Task " + i,
-    //     duration: "5 days",
-    //     percentComplete: Math.round(Math.random() * 100),
-    //     start: "01/01/2009",
-    //     finish: "01/05/2009",
-    //     effortDriven: (i % 5 == 0)
-    //   };
-    // }
-
-    // grid = new Slick.Grid("#myGrid", data, columns, options);
-
-*/
