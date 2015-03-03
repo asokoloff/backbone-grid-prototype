@@ -7,7 +7,7 @@ define([
     'chance'
 ], function(_, Marionette, GridModel, GridCollection, GridView) {
 
-    // this is a proper AMD load.
+    // this is not a correct AMD load.
     var chance = new Chance();
 
     // Creates and manages a single instance of GridView
